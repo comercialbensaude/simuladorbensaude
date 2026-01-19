@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORÇAMENTO BENSAÚDE & LANCERS</title>
+    <title>ORÇAMENTO BENSAÚDE & LANCERS - V2</title>
+    <!-- Biblioteca para ler Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -20,6 +21,7 @@
         /* REGRA GLOBAL DE MAIÚSCULAS */
         * {
             text-transform: uppercase;
+            box-sizing: border-box;
         }
 
         body {
@@ -29,6 +31,7 @@
             margin: 0;
             padding: 20px;
         }
+        
         .container {
             max-width: 1000px;
             margin: 0 auto;
@@ -69,7 +72,7 @@
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
         input, select {
             width: 100%; padding: 12px; border: 1px solid var(--border);
-            border-radius: 6px; box-sizing: border-box; font-size: 1em;
+            border-radius: 6px; font-size: 1em;
             background-color: #fafafa;
         }
         input:focus, select:focus { 
@@ -99,26 +102,15 @@
         .btn-add { background-color: var(--primary); }
         .btn-add:hover { background-color: #003870; }
         
-        .btn-finish { 
-            background-color: var(--secondary); 
-            color: #003870; 
-        }
+        .btn-finish { background-color: var(--secondary); color: #003870; }
         .btn-finish:hover { background-color: #2dbbf0; }
         
         .btn-print { background-color: var(--primary); margin-top: 20px; }
         
-        .btn-back {
-            background-color: #6c757d;
-            color: white;
-            margin-top: 10px;
-        }
+        .btn-back { background-color: #6c757d; color: white; margin-top: 10px; }
         .btn-back:hover { background-color: #5a6268; }
 
-        .btn-reset {
-            background-color: var(--danger);
-            color: white;
-            margin-top: 20px;
-        }
+        .btn-reset { background-color: var(--danger); color: white; margin-top: 20px; }
         .btn-reset:hover { background-color: #c82333; }
 
         .btn-remove { background-color: #dc3545; padding: 5px 12px; font-size: 0.8em; width: auto; margin: 0; color: white;}
@@ -136,13 +128,9 @@
         .guia-medico-link:hover { color: var(--secondary); border-color: var(--secondary); }
 
         /* QR Code */
-     <div class="qr-code-container">
-    <img src="assets/img/qrcode.png" alt="QR Code Guia Médico" class="qr-code-img">
-    <br>
-    <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
-        🔗 ACESSAR GUIA MÉDICO
-    </a>
-</div>
+        .qr-code-container {
+            margin-top: 10px;
+            text-align: left;
         }
         .qr-code-img {
             width: 100px;
@@ -156,12 +144,7 @@
         /* Tabelas */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95em; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { 
-            background-color: var(--primary); 
-            color: white; 
-            font-weight: 600; 
-            font-size: 0.85em;
-        }
+        th { background-color: var(--primary); color: white; font-weight: 600; font-size: 0.85em; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         
         /* Totais */
@@ -207,7 +190,7 @@
         }
         .logo-img-input { max-height: 80px; max-width: 100%; }
 
-        /* Impressão */
+        /* Impressão - Estilos Normais */
         .header-proposta {
             display: flex;
             justify-content: space-between;
@@ -217,12 +200,7 @@
             padding-bottom: 20px;
         }
         
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
+        .logo-container { display: flex; align-items: center; gap: 20px; }
         .logo-img { max-height: 80px; max-width: 200px; object-fit: contain; }
         
         .footer-proposta {
@@ -239,17 +217,13 @@
         .hidden { display: none; }
         .no-print { }
 
-        /* ESTILOS DE IMPRESSÃO OTIMIZADOS */
+        /* --- ESTILOS DE IMPRESSÃO OTIMIZADOS (A4 ÚNICA PÁGINA) --- */
         @media print {
-            @page { 
-                margin: 5mm; 
-                size: A4; 
-            }
+            @page { margin: 5mm; size: A4; }
             
             body { 
                 background: white; 
-                padding: 0; 
-                margin: 0;
+                padding: 0; margin: 0;
                 -webkit-print-color-adjust: exact; 
                 print-color-adjust: exact; 
             }
@@ -257,47 +231,41 @@
             .no-print { display: none !important; }
             
             .container { 
-                box-shadow: none; 
-                border: none; 
-                padding: 0; 
-                max-width: 100%; 
-                margin: 0; 
-                border-top: none; 
+                box-shadow: none; border: none; padding: 0; 
+                max-width: 100%; margin: 0; border-top: none; 
                 width: 100%;
             }
             
-            #proposta-final { 
-                display: block !important; 
-                width: 100%;
-            }
+            #proposta-final { display: block !important; width: 100%; }
 
             /* Compactar Header */
             .header-proposta {
                 margin-bottom: 10px;
-                padding-bottom: 10px;
+                padding-bottom: 5px;
                 border-bottom: 2px solid var(--secondary);
             }
-            .logo-img { max-height: 60px; }
+            .logo-img { max-height: 50px; }
             
             /* Compactar Tabela */
-            h2 { font-size: 1.2em; margin: 10px 0; }
-            table { font-size: 0.8em; margin-top: 5px; }
-            th, td { padding: 6px 8px; }
+            h2 { font-size: 1.1em; margin: 5px 0; padding-left: 10px; }
+            table { font-size: 0.75em; margin-top: 5px; }
+            th, td { padding: 4px 6px; }
             th { background-color: #004F9A !important; color: white !important; }
             
             /* Compactar Totais */
             .resumo-box { 
                 background-color: #eef9fd !important; 
-                padding: 10px;
-                margin-top: 15px;
+                padding: 8px;
+                margin-top: 10px;
+                border: 1px solid #ccc;
             }
-            .linha-total { margin-bottom: 5px; font-size: 0.9em; }
-            .linha-total.destaque { margin-top: 10px; padding-top: 10px; font-size: 1.1em; }
-            .linha-ato { background-color: #fff3cd !important; border: 1px solid #ffeeba !important; padding: 5px; }
+            .linha-total { margin-bottom: 3px; font-size: 0.85em; }
+            .linha-total.destaque { margin-top: 5px; padding-top: 5px; font-size: 1em; }
+            .linha-ato { background-color: #fff3cd !important; padding: 4px; font-size: 0.85em; }
 
             /* Compactar Footer */
-            .footer-proposta { margin-top: 20px; padding-top: 10px; }
-            .qr-code-img { width: 80px; height: 80px; }
+            .footer-proposta { margin-top: 15px; padding-top: 10px; font-size: 0.75em; }
+            .qr-code-img { width: 70px; height: 70px; }
             
             a { text-decoration: none; color: #000; }
         }
@@ -389,7 +357,7 @@
                         <label>TAXA DE ADESÃO (R$)</label>
                         <input type="number" id="manualTaxa" placeholder="0.00" step="0.01">
                     </div>
-                    <!-- NOVO CAMPO: TAXA ASSOCIATIVA MANUAL -->
+                    <!-- CAMPO MANUAL TAXA ASSOCIATIVA -->
                     <div class="form-group">
                         <label style="color: var(--primary);">TAXA ASSOCIATIVA (R$)</label>
                         <input type="number" id="manualTaxaAssociativa" placeholder="0.00" step="0.01">
@@ -453,12 +421,8 @@
         <!-- Cabeçalho com Logo -->
         <div class="header-proposta">
             <div class="logo-container">
-                <!-- Logo Bensaúde -->
                 <img src="Logotipo-Bensade-+-Bene-1.png" alt="Bensaúde" class="logo-img" onerror="this.style.display='none';">
-                
-                <!-- Logo Lancers (Oculta por padrão) -->
                 <img src="Lancers.png" id="logo-lancers" alt="Lancers" class="logo-img" style="display:none;">
-                
                 <h1 id="logo-text" style="display:none; margin:0; color:var(--primary); font-size:2em;">BENSAÚDE</h1>
             </div>
             <div style="text-align: right;">
@@ -544,7 +508,6 @@
                     <strong style="color:var(--primary)">CONSULTE NOSSA REDE CREDENCIADA:</strong><br>
                     
                     <div class="qr-code-container">
-                        <!-- Substitua 'qrcode.png' pelo nome correto do arquivo se for diferente -->
                         <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img">
                         <br>
                         <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
@@ -792,7 +755,7 @@
             const nomePlanoManual = document.getElementById('manualNomePlano').value;
             const mensManual = parseFloat(document.getElementById('manualMensalidade').value) || 0;
             const taxaManual = parseFloat(document.getElementById('manualTaxa').value) || 0;
-            // NOVO: Captura a Taxa Associativa Manual
+            // Captura Taxa Associativa Manual
             const taxaAssocManual = parseFloat(document.getElementById('manualTaxaAssociativa').value) || 0;
             const acomodacaoManual = document.getElementById('acomodacao').value;
             
@@ -821,14 +784,14 @@
                 produto: nomePlanoManual, 
                 acomodacao: acomodacaoManual || "-",
                 mensalidade: mensManual,
-                taxaAdesaoManual: taxaManual, // Salva separado
-                taxaAssociativaManual: taxaAssocManual, // Salva separado
+                taxaAdesaoManual: taxaManual, 
+                taxaAssociativaManual: taxaAssocManual, 
                 ehAcirp: false,
                 ehAcif: false,
                 ehLancers: false,
                 ehAssociativo: false,
                 ehIndividual: nomePlanoManual.toUpperCase().includes("INDIVIDUAL"),
-                ehManual: true // Flag para identificar
+                ehManual: true 
             });
             
             finalizarAdicao();
@@ -892,7 +855,7 @@
         document.getElementById('manualNomePlano').value = "";
         document.getElementById('manualMensalidade').value = "";
         document.getElementById('manualTaxa').value = "";
-        document.getElementById('manualTaxaAssociativa').value = ""; // Limpa novo campo
+        document.getElementById('manualTaxaAssociativa').value = "";
         document.getElementById('nome').focus();
     }
 
@@ -1124,22 +1087,18 @@
 
         document.getElementById('soma-total-final').innerText = formatarMoeda(totalMensalRecorrente);
 
-        // --- LÓGICA DE ESCALA AUTOMÁTICA (ZOOM) PARA CABER EM UMA PÁGINA ---
+        // --- LÓGICA DE ESCALA AUTOMÁTICA (ZOOM) PARA IMPRESSÃO ---
         setTimeout(ajustarEscalaParaImpressao, 500);
     }
 
     function ajustarEscalaParaImpressao() {
         const container = document.getElementById('proposta-final');
         const alturaConteudo = container.scrollHeight;
-        
-        // Altura aproximada de uma página A4 em pixels (considerando margens)
-        // 1123px é A4 a 96dpi. Com margens, a área segura é ~1000px.
+        // Altura segura aproximada de uma página A4 em pixels
         const alturaMaximaPagina = 1050; 
 
         if (alturaConteudo > alturaMaximaPagina) {
-            // Calcula o fator de escala necessário
             const escala = alturaMaximaPagina / alturaConteudo;
-            // Aplica o zoom apenas no container da proposta
             container.style.zoom = escala;
         } else {
             container.style.zoom = 1;
@@ -1149,13 +1108,10 @@
     function voltarEdicao() {
         document.getElementById('proposta-final').classList.add('hidden');
         document.getElementById('interface-vendedor').classList.remove('hidden');
-        // Reseta o zoom ao voltar
         document.getElementById('proposta-final').style.zoom = 1;
         window.scrollTo(0, 0);
     }
 </script>
 
 </body>
-
 </html>
-

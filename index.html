@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORÇAMENTO BENSAÚDE & LANCERS - V2</title>
+    <title>ORÇAMENTO BENSAÚDE & LANCERS - V3</title>
     <!-- Biblioteca para ler Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -64,8 +64,12 @@
         /* Layout */
         .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        /* Grid especial para o topo (3 colunas) */
+        .grid-top { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
         @media (max-width: 768px) { 
-            .grid-layout, .grid-3 { grid-template-columns: 1fr; } 
+            .grid-layout, .grid-3, .grid-top { grid-template-columns: 1fr; } 
         }
 
         /* Formulários */
@@ -85,13 +89,15 @@
         
         /* Status do Carregamento */
         #status-tabela {
-            font-size: 0.9em;
+            font-size: 0.8em;
             font-weight: bold;
             padding: 10px;
             border-radius: 6px;
-            margin-bottom: 20px;
-            display: block;
-            text-align: center;
+            margin-bottom: 0; /* Ajuste para o grid */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px; /* Altura fixa para alinhar com inputs */
         }
         .status-loading { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -154,6 +160,21 @@
             border: 1px solid #eee;
             padding: 5px;
             background: white;
+        }
+
+        /* Imagem de Carências */
+        .carencia-img-container {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .carencia-img {
+            width: 100%;
+            height: auto;
+            max-height: 400px; /* Limite para não estourar a página */
+            object-fit: contain;
         }
 
         /* Tabelas */
@@ -251,6 +272,11 @@
             .linha-ato { background-color: #fff3cd !important; padding: 4px; font-size: 0.85em; }
             .footer-proposta { margin-top: 15px; padding-top: 10px; font-size: 0.75em; }
             .qr-code-img { width: 70px; height: 70px; }
+            
+            /* Ajuste da imagem de carência na impressão */
+            .carencia-img-container { margin-top: 10px; padding: 5px; border: none; }
+            .carencia-img { max-height: 250px; } /* Reduz imagem para caber na folha */
+            
             a { text-decoration: none; color: #000; }
         }
     </style>
@@ -260,20 +286,30 @@
 <div class="container" id="main-container">
     
     <!-- TAG DE VERSÃO -->
-    <div class="version-tag no-print">VERSÃO 02</div>
+    <div class="version-tag no-print">VERSÃO 03</div>
     
     <!-- Configuração (Automática) -->
     <div class="section no-print" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc;">
-        <div class="grid-layout">
+        <div class="grid-top">
             <div>
+                <label style="color: var(--primary); font-size:0.9em">STATUS DA TABELA</label>
                 <!-- STATUS DO CARREGAMENTO DA TABELA -->
                 <div id="status-tabela" class="status-loading">
-                    ⌛ CARREGANDO TABELA DE PREÇOS...
+                    ⌛ CARREGANDO...
                 </div>
             </div>
             <div>
-                <label style="color: var(--danger); font-size:0.9em">👨‍💼 NOME DO CONSULTOR (OBRIGATÓRIO)</label>
+                <label style="color: var(--danger); font-size:0.9em">👨‍💼 NOME DO CONSULTOR</label>
                 <input type="text" id="nomeConsultor" placeholder="SEU NOME...">
+            </div>
+            <!-- NOVO CAMPO: SELEÇÃO DE CARÊNCIA -->
+            <div>
+                <label style="color: var(--primary); font-size:0.9em">⏳ TIPO DE CARÊNCIA</label>
+                <select id="tipoCarenciaSelecionada">
+                    <option value="normal">CARÊNCIAS NORMAIS</option>
+                    <option value="reduzida">CARÊNCIAS REDUZIDAS</option>
+                    <option value="zero">CARÊNCIAS ZERO</option>
+                </select>
             </div>
         </div>
     </div>
@@ -478,6 +514,14 @@
             </div>
         </div>
 
+        <!-- ÁREA DA IMAGEM DE CARÊNCIA -->
+        <div class="carencia-img-container">
+            <h3 style="margin: 0 0 10px 0; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+                TABELA DE CARÊNCIAS
+            </h3>
+            <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img">
+        </div>
+
         <!-- Rodapé -->
         <div class="footer-proposta">
             <div style="width: 55%;">
@@ -559,12 +603,12 @@
                 processarWorkbook(workbook);
                 
                 statusDiv.className = 'status-success';
-                statusDiv.innerText = '✅ TABELA DE PREÇOS CARREGADA COM SUCESSO!';
+                statusDiv.innerText = '✅ TABELA CARREGADA!';
             })
             .catch(error => {
                 console.error(error);
                 statusDiv.className = 'status-error';
-                statusDiv.innerText = '❌ ERRO AO CARREGAR TABELA. VERIFIQUE SE O ARQUIVO "tabela_precos.xlsx" ESTÁ NA PASTA.';
+                statusDiv.innerText = '❌ ERRO: TABELA NÃO ENCONTRADA';
             });
     }
 
@@ -905,6 +949,19 @@
         }
 
         document.getElementById('assinatura-nome').innerText = consultor;
+
+        // --- LÓGICA DA IMAGEM DE CARÊNCIA ---
+        const tipoCarencia = document.getElementById('tipoCarenciaSelecionada').value;
+        const imgCarencia = document.getElementById('img-carencia-final');
+        
+        // Define qual imagem carregar baseado na seleção
+        if (tipoCarencia === 'normal') {
+            imgCarencia.src = 'carencias_normais.png';
+        } else if (tipoCarencia === 'reduzida') {
+            imgCarencia.src = 'carencias_reduzidas.png';
+        } else if (tipoCarencia === 'zero') {
+            imgCarencia.src = 'carencias_zero.png';
+        }
 
         const temAssociativo = listaClientes.some(c => c.ehAssociativo);
         if (temAssociativo) {

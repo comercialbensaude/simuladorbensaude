@@ -16,6 +16,7 @@
             --white: #ffffff;
             --border: #ccc;
             --danger: #dc3545;
+            --success: #28a745;
         }
         
         /* REGRA GLOBAL DE MAIÚSCULAS */
@@ -82,6 +83,20 @@
             background-color: #fff;
         }
         
+        /* Status do Carregamento */
+        #status-tabela {
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: block;
+            text-align: center;
+        }
+        .status-loading { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
         /* Áreas Condicionais */
         #area-associativa, #area-manual {
             background-color: var(--accent-bg);
@@ -190,7 +205,7 @@
         }
         .logo-img-input { max-height: 80px; max-width: 100%; }
 
-        /* Impressão - Estilos Normais */
+        /* Impressão */
         .header-proposta {
             display: flex;
             justify-content: space-between;
@@ -217,56 +232,25 @@
         .hidden { display: none; }
         .no-print { }
 
-        /* --- ESTILOS DE IMPRESSÃO OTIMIZADOS (A4 ÚNICA PÁGINA) --- */
+        /* --- ESTILOS DE IMPRESSÃO OTIMIZADOS --- */
         @media print {
             @page { margin: 5mm; size: A4; }
-            
-            body { 
-                background: white; 
-                padding: 0; margin: 0;
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-            }
-            
+            body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            
-            .container { 
-                box-shadow: none; border: none; padding: 0; 
-                max-width: 100%; margin: 0; border-top: none; 
-                width: 100%;
-            }
-            
+            .container { box-shadow: none; border: none; padding: 0; max-width: 100%; margin: 0; border-top: none; width: 100%; }
             #proposta-final { display: block !important; width: 100%; }
-
-            /* Compactar Header */
-            .header-proposta {
-                margin-bottom: 10px;
-                padding-bottom: 5px;
-                border-bottom: 2px solid var(--secondary);
-            }
+            .header-proposta { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--secondary); }
             .logo-img { max-height: 50px; }
-            
-            /* Compactar Tabela */
             h2 { font-size: 1.1em; margin: 5px 0; padding-left: 10px; }
             table { font-size: 0.75em; margin-top: 5px; }
             th, td { padding: 4px 6px; }
             th { background-color: #004F9A !important; color: white !important; }
-            
-            /* Compactar Totais */
-            .resumo-box { 
-                background-color: #eef9fd !important; 
-                padding: 8px;
-                margin-top: 10px;
-                border: 1px solid #ccc;
-            }
+            .resumo-box { background-color: #eef9fd !important; padding: 8px; margin-top: 10px; border: 1px solid #ccc; }
             .linha-total { margin-bottom: 3px; font-size: 0.85em; }
             .linha-total.destaque { margin-top: 5px; padding-top: 5px; font-size: 1em; }
             .linha-ato { background-color: #fff3cd !important; padding: 4px; font-size: 0.85em; }
-
-            /* Compactar Footer */
             .footer-proposta { margin-top: 15px; padding-top: 10px; font-size: 0.75em; }
             .qr-code-img { width: 70px; height: 70px; }
-            
             a { text-decoration: none; color: #000; }
         }
     </style>
@@ -278,12 +262,14 @@
     <!-- TAG DE VERSÃO -->
     <div class="version-tag no-print">VERSÃO 02</div>
     
-    <!-- Configuração (Upload) -->
+    <!-- Configuração (Automática) -->
     <div class="section no-print" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc;">
         <div class="grid-layout">
             <div>
-                <label style="color: var(--primary); font-size:0.9em">📂 TABELA DE PREÇOS (EXCEL)</label>
-                <input type="file" id="excelFile" accept=".xlsx, .xls">
+                <!-- STATUS DO CARREGAMENTO DA TABELA -->
+                <div id="status-tabela" class="status-loading">
+                    ⌛ CARREGANDO TABELA DE PREÇOS...
+                </div>
             </div>
             <div>
                 <label style="color: var(--danger); font-size:0.9em">👨‍💼 NOME DO CONSULTOR (OBRIGATÓRIO)</label>
@@ -326,9 +312,8 @@
             <div class="grid-layout">
                 <div class="form-group">
                     <label>PRODUTO / PLANO</label>
-                    <select id="produto" onchange="verificarProduto()">
-                        <option value="">SELECIONE OU CARREGUE EXCEL...</option>
-                        <option value="OUTRO">OUTRO (DIGITAR MANUALMENTE)</option>
+                    <select id="produto" onchange="verificarProduto()" disabled>
+                        <option value="">AGUARDANDO TABELA...</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -544,83 +529,78 @@
 
     // --- Inicialização ---
     window.onload = function() {
+        // Datas
         const hoje = new Date();
         const validade = new Date();
         validade.setDate(hoje.getDate() + 15);
         document.getElementById('data-hoje').innerText = hoje.toLocaleDateString('pt-BR');
         document.getElementById('data-validade').innerText = validade.toLocaleDateString('pt-BR');
 
-        const salvo = localStorage.getItem('tabelaPrecos');
-        const salvoAcirp = localStorage.getItem('tabelaAcirp');
-        const salvoAcif = localStorage.getItem('tabelaAcif');
+        // Carregar Consultor Salvo
         const consultor = localStorage.getItem('nomeConsultor');
-
         if (consultor) document.getElementById('nomeConsultor').value = consultor;
 
-        if (salvo) {
-            dadosExcel = JSON.parse(salvo);
-            if(salvoAcirp) dadosAcirp = JSON.parse(salvoAcirp);
-            if(salvoAcif) dadosAcif = JSON.parse(salvoAcif);
-            popularSelects();
-        }
+        // Tenta carregar a tabela automaticamente
+        carregarTabelaAutomatica();
     };
+
+    // --- CARREGAMENTO AUTOMÁTICO DA TABELA ---
+    function carregarTabelaAutomatica() {
+        const statusDiv = document.getElementById('status-tabela');
+        const arquivoUrl = 'tabela_precos.xlsx'; // NOME DO ARQUIVO NO GITHUB/PASTA
+
+        fetch(arquivoUrl)
+            .then(response => {
+                if (!response.ok) throw new Error("Arquivo não encontrado");
+                return response.arrayBuffer();
+            })
+            .then(data => {
+                const workbook = XLSX.read(new Uint8Array(data), {type: 'array'});
+                processarWorkbook(workbook);
+                
+                statusDiv.className = 'status-success';
+                statusDiv.innerText = '✅ TABELA DE PREÇOS CARREGADA COM SUCESSO!';
+            })
+            .catch(error => {
+                console.error(error);
+                statusDiv.className = 'status-error';
+                statusDiv.innerText = '❌ ERRO AO CARREGAR TABELA. VERIFIQUE SE O ARQUIVO "tabela_precos.xlsx" ESTÁ NA PASTA.';
+            });
+    }
+
+    function processarWorkbook(workbook) {
+        // 1. Planilha de Preços
+        const sheetName = workbook.SheetNames[0];
+        dadosExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        
+        // 2. Planilha ACIRP
+        const acirpSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIRP'));
+        if (acirpSheetName) {
+            dadosAcirp = XLSX.utils.sheet_to_json(workbook.Sheets[acirpSheetName]);
+        } else {
+            dadosAcirp = [];
+        }
+
+        // 3. Planilha ACIF FERNANDOPOLIS
+        const acifSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIF_FERNANDOPOLIS'));
+        if (acifSheetName) {
+            dadosAcif = XLSX.utils.sheet_to_json(workbook.Sheets[acifSheetName]);
+        } else {
+            dadosAcif = [];
+        }
+
+        popularSelects();
+    }
 
     document.getElementById('nomeConsultor').addEventListener('change', function() {
         localStorage.setItem('nomeConsultor', this.value);
-    });
-
-    // --- Leitura do Excel ---
-    document.getElementById('excelFile').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            
-            // 1. Planilha de Preços
-            const sheetName = workbook.SheetNames[0];
-            dadosExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-            
-            // 2. Planilha ACIRP
-            const acirpSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIRP'));
-            if (acirpSheetName) {
-                dadosAcirp = XLSX.utils.sheet_to_json(workbook.Sheets[acirpSheetName]);
-                localStorage.setItem('tabelaAcirp', JSON.stringify(dadosAcirp));
-            } else {
-                dadosAcirp = [];
-                localStorage.removeItem('tabelaAcirp');
-            }
-
-            // 3. Planilha ACIF FERNANDOPOLIS
-            const acifSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIF_FERNANDOPOLIS'));
-            if (acifSheetName) {
-                dadosAcif = XLSX.utils.sheet_to_json(workbook.Sheets[acifSheetName]);
-                localStorage.setItem('tabelaAcif', JSON.stringify(dadosAcif));
-            } else {
-                dadosAcif = [];
-                localStorage.removeItem('tabelaAcif');
-            }
-
-            localStorage.setItem('tabelaPrecos', JSON.stringify(dadosExcel));
-            
-            let msg = "TABELA DE PREÇOS CARREGADA!";
-            if(acirpSheetName) msg += "\nABA ACIRP ENCONTRADA.";
-            if(acifSheetName) msg += "\nABA ACIF_FERNANDOPOLIS ENCONTRADA.";
-            alert(msg);
-
-            popularSelects();
-        };
-        reader.readAsArrayBuffer(file);
     });
 
     function popularSelects() {
         const selectProd = document.getElementById('produto');
         const selectAcom = document.getElementById('acomodacao');
         
-        // Limpa e mantém a opção padrão
-        selectProd.innerHTML = '<option value="">SELECIONE OU CARREGUE EXCEL...</option>';
+        selectProd.innerHTML = '<option value="">SELECIONE O PLANO...</option>';
         selectProd.add(new Option("OUTRO (DIGITAR MANUALMENTE)", "OUTRO"));
 
         const produtos = [...new Set(dadosExcel.map(row => row['tipo_de_plano']).filter(Boolean))];

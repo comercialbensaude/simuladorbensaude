@@ -64,8 +64,6 @@
         /* Layout */
         .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        
-        /* Grid especial para o topo (3 colunas) */
         .grid-top { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
 
         @media (max-width: 768px) { 
@@ -170,11 +168,12 @@
             padding: 10px;
             border-radius: 8px;
             background: #fff;
+            text-align: center;
         }
         .carencia-img {
             width: 100%;
             height: auto;
-            max-height: 400px; /* Limite para não estourar a página */
+            max-height: 350px;
             object-fit: contain;
         }
 
@@ -251,7 +250,7 @@
         .assinatura-box { text-align: center; width: 250px; }
         .linha-assinatura { border-top: 1px solid #000; margin-bottom: 5px; }
 
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .no-print { }
 
         /* --- CLASSE PARA AUMENTAR A FONTE NO PRODUTO LANCERS --- */
@@ -529,11 +528,12 @@
         </div>
 
         <!-- ÁREA DA IMAGEM DE CARÊNCIA -->
-        <div class="carencia-img-container">
+        <div class="carencia-img-container" id="container-carencia">
             <h3 style="margin: 0 0 10px 0; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 5px;">
                 TABELA DE CARÊNCIAS
             </h3>
-            <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img">
+            <!-- O onerror previne que apareça um ícone quebrado caso a imagem não exista na pasta -->
+            <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img" onerror="this.style.display='none';" onload="this.style.display='block';">
         </div>
 
         <!-- Rodapé -->
@@ -551,7 +551,7 @@
                     <strong style="color:var(--primary)">CONSULTE NOSSA REDE CREDENCIADA:</strong><br>
                     
                     <div class="qr-code-container">
-                        <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img">
+                        <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img" onerror="this.style.display='none';">
                         <br>
                         <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
                             🔗 ACESSAR GUIA MÉDICO
@@ -624,7 +624,7 @@
             .catch(error => {
                 console.error(error);
                 statusDiv.className = 'status-error';
-                statusDiv.innerHTML = '❌ ERRO: TABELA NÃO ENCONTRADA AUTOMATICAMENTE.<br><small>Se estiver testando no PC, use o botão abaixo.</small>';
+                statusDiv.innerHTML = '❌ TABELA NÃO ENCONTRADA AUTOMATICAMENTE.<br><small>Se estiver testando no PC, use o botão abaixo.</small>';
                 fallbackDiv.style.display = 'block'; // Mostra o upload manual
             });
     }
@@ -773,7 +773,7 @@
         const nasc = new Date(dataNasc);
         let idade = hoje.getFullYear() - nasc.getFullYear();
         const m = hoje.getMonth() - nasc.getMonth();
-        if (m &lt; 0 || (m === 0 && hoje.getDate() &lt; nasc.getDate())) idade--;
+        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
         return idade;
     }
 
@@ -783,7 +783,7 @@
         if (!numeros) return false;
         const min = parseInt(numeros[0]);
         const max = numeros[1] ? parseInt(numeros[1]) : 999;
-        return idade >= min && idade &lt;= max;
+        return idade >= min && idade <= max;
     }
 
     function formatarMoeda(valor) {
@@ -969,6 +969,7 @@
             document.getElementById('area-associativa').style.display = 'none';
             document.getElementById('area-manual').style.display = 'none';
             document.getElementById('tipoEmpresaAssoc').value = "0";
+            document.getElementById('tipoCarenciaSelecionada').value = "normal";
             atualizarValorEmpresa();
         }
     }

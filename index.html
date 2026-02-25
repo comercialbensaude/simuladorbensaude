@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORÇAMENTO BENSAÚDE & LANCERS - V3</title>
+    <title>ORÇAMENTO BENSAÚDE & LANCERS - V5</title>
     <!-- Biblioteca para ler Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -161,7 +161,7 @@
             background: white;
         }
 
-        /* Imagem de Carências */
+        /* Imagem de Carências e Coparticipação */
         .carencia-img-container {
             margin-top: 20px;
             border: 1px solid #eee;
@@ -174,6 +174,18 @@
             width: 100%;
             height: auto;
             max-height: 350px;
+            object-fit: contain;
+        }
+        
+        #conteudo-coparticipacao {
+            text-align: center;
+            padding-top: 20px;
+            width: 100%;
+        }
+        #conteudo-coparticipacao img {
+            width: 100%;
+            height: auto;
+            max-height: 1050px;
             object-fit: contain;
         }
 
@@ -285,6 +297,17 @@
             .carencia-img-container { margin-top: 10px; padding: 5px; border: none; }
             .carencia-img { max-height: 250px; } 
             
+            #conteudo-coparticipacao {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+            #conteudo-coparticipacao img {
+                max-height: 270mm; /* Garante que a imagem não estoure a folha A4 */
+                width: auto;
+                max-width: 100%;
+            }
+
             a { text-decoration: none; color: #000; }
         }
     </style>
@@ -294,18 +317,20 @@
 <div class="container" id="main-container">
     
     <!-- TAG DE VERSÃO -->
-    <div class="version-tag no-print">VERSÃO 03</div>
+    <div class="version-tag no-print">VERSÃO 05</div>
     
-    <!-- Configuração -->
+    <!-- Configuração Principal -->
     <div class="section no-print" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc;">
-        <div class="grid-top">
+        
+        <!-- Linha 1: Status e Consultor -->
+        <div class="grid-layout" style="margin-bottom: 15px;">
             <div>
                 <label style="color: var(--primary); font-size:0.9em">STATUS DA TABELA</label>
                 <!-- STATUS DO CARREGAMENTO DA TABELA -->
                 <div id="status-tabela" class="status-loading">
-                    ⌛ TENTANDO CARREGAR...
+                    ⌛ VERIFICANDO TABELA...
                 </div>
-                <!-- FALLBACK: UPLOAD MANUAL CASO ESTEJA TESTANDO NO PC -->
+                <!-- FALLBACK: UPLOAD MANUAL -->
                 <div id="fallback-upload" style="display: none; margin-top: 10px;">
                     <label style="color: var(--danger); font-size:0.8em">📁 SELECIONE O ARQUIVO MANUALMENTE:</label>
                     <input type="file" id="excelFile" accept=".xlsx, .xls" style="padding: 5px; font-size: 0.8em;">
@@ -315,7 +340,10 @@
                 <label style="color: var(--danger); font-size:0.9em">👨‍💼 NOME DO CONSULTOR</label>
                 <input type="text" id="nomeConsultor" placeholder="SEU NOME...">
             </div>
-            <!-- SELEÇÃO DE CARÊNCIA -->
+        </div>
+
+        <!-- Linha 2: Carência e Tipo de Orçamento -->
+        <div class="grid-layout">
             <div>
                 <label style="color: var(--primary); font-size:0.9em">⏳ TIPO DE CARÊNCIA</label>
                 <select id="tipoCarenciaSelecionada">
@@ -324,249 +352,279 @@
                     <option value="zero">CARÊNCIAS ZERO</option>
                 </select>
             </div>
+            <div>
+                <label style="color: var(--primary); font-size:0.9em">📄 TIPO DE ORÇAMENTO</label>
+                <select id="tipoOrcamentoSelecionado" onchange="verificarTipoOrcamento()">
+                    <option value="simplificado">ORÇAMENTO SIMPLIFICADO</option>
+                    <option value="completo">ORÇAMENTO COMPLETO</option>
+                    <option value="coparticipacao">MODELO DE COPARTICIPAÇÃO</option>
+                </select>
+                <!-- BOTÃO DIRETO PARA IMPRIMIR SÓ COPARTICIPAÇÃO -->
+                <button id="btn-imprimir-copart" class="btn" style="display: none; margin-top: 10px; background-color: var(--secondary); color: #003870;" onclick="imprimirCoparticipacaoDireto()">
+                    🖨️ IMPRIMIR MODELO DE COPARTICIPAÇÃO
+                </button>
+            </div>
         </div>
+
     </div>
 
     <!-- Interface do Vendedor -->
     <div id="interface-vendedor" class="no-print">
         
-        <!-- LOGO NA TELA DE INPUT -->
         <div class="logo-header-input">
             <img src="Logotipo-Bensade-+-Bene-1.png" alt="Bensaúde" class="logo-img-input" onerror="this.style.display='none'">
             <h2 style="margin: 10px 0 0 0; color: var(--primary);">SIMULADOR DE VENDAS</h2>
         </div>
         
-        <!-- Formulário -->
-        <div style="background: #fff; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--secondary); padding-bottom:10px; margin-bottom:20px;">
-                <h3 style="margin:0; color: var(--primary);">ADICIONAR BENEFICIÁRIO</h3>
-                <button class="btn btn-reset" style="width:auto; margin:0; padding:8px 15px; font-size:0.9em;" onclick="resetarOrcamento()">🗑️ NOVO ORÇAMENTO (LIMPAR)</button>
-            </div>
-            
-            <div class="grid-3">
-                <div class="form-group">
-                    <label>NOME DO CLIENTE</label>
-                    <input type="text" id="nome" placeholder="EX: JOÃO SILVA">
+        <!-- WRAPPER PARA OCULTAR QUANDO FOR SÓ COPARTICIPAÇÃO -->
+        <div id="area-adicionar-beneficiario">
+            <!-- Formulário -->
+            <div style="background: #fff; padding: 25px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--secondary); padding-bottom:10px; margin-bottom:20px;">
+                    <h3 style="margin:0; color: var(--primary);">ADICIONAR BENEFICIÁRIO</h3>
+                    <button class="btn btn-reset" style="width:auto; margin:0; padding:8px 15px; font-size:0.9em;" onclick="resetarOrcamento()">🗑️ NOVO ORÇAMENTO (LIMPAR)</button>
                 </div>
-                <div class="form-group">
-                    <label>DATA DE NASCIMENTO</label>
-                    <input type="date" id="nascimento" onchange="calcularIdadeAutomatica()">
-                </div>
-                <div class="form-group">
-                    <label style="color: var(--secondary);">OU DIGITE A IDADE</label>
-                    <input type="number" id="idadeManual" placeholder="EX: 35" min="0" max="120" onchange="limparCampoNascimento()">
-                </div>
-            </div>
-
-            <div class="grid-layout">
-                <div class="form-group">
-                    <label>PRODUTO / PLANO</label>
-                    <select id="produto" onchange="verificarProduto()" disabled>
-                        <option value="">AGUARDANDO TABELA...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>ACOMODAÇÃO</label>
-                    <select id="acomodacao" disabled>
-                        <option value="">SELECIONE...</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- ÁREA MANUAL (Opção "Outro") -->
-            <div id="area-manual">
-                <h4 style="color: var(--primary);">✏️ PREENCHIMENTO MANUAL</h4>
                 
-                <div class="form-group" style="margin-bottom:20px;">
-                    <label style="color:var(--danger)">NOME DO PLANO (OBRIGATÓRIO)</label>
-                    <input type="text" id="manualNomePlano" placeholder="DIGITE O NOME DO PLANO...">
-                </div>
-
                 <div class="grid-3">
                     <div class="form-group">
-                        <label>VALOR DA MENSALIDADE (R$)</label>
-                        <input type="number" id="manualMensalidade" placeholder="0.00" step="0.01">
+                        <label>NOME DO CLIENTE</label>
+                        <input type="text" id="nome" placeholder="EX: JOÃO SILVA">
                     </div>
                     <div class="form-group">
-                        <label>TAXA DE ADESÃO (R$)</label>
-                        <input type="number" id="manualTaxa" placeholder="0.00" step="0.01">
+                        <label>DATA DE NASCIMENTO</label>
+                        <input type="date" id="nascimento" onchange="calcularIdadeAutomatica()">
                     </div>
-                    <!-- CAMPO MANUAL TAXA ASSOCIATIVA -->
                     <div class="form-group">
-                        <label style="color: var(--primary);">TAXA ASSOCIATIVA (R$)</label>
-                        <input type="number" id="manualTaxaAssociativa" placeholder="0.00" step="0.01">
+                        <label style="color: var(--secondary);">OU DIGITE A IDADE</label>
+                        <input type="number" id="idadeManual" placeholder="EX: 35" min="0" max="120" onchange="limparCampoNascimento()">
                     </div>
                 </div>
-            </div>
 
-            <!-- ÁREA ASSOCIATIVA (ACIRP / ACIF) -->
-            <div id="area-associativa">
-                <h4 style="color: var(--primary);">🏢 CONFIGURAÇÃO ASSOCIATIVA (<span id="label-tipo-assoc">EMPRESA</span>)</h4>
                 <div class="grid-layout">
                     <div class="form-group">
-                        <label>TIPO DE EMPRESA / ASSOCIAÇÃO</label>
-                        <select id="tipoEmpresaAssoc" onchange="atualizarValorEmpresa()">
-                            <option value="0">SELECIONE A EMPRESA...</option>
+                        <label>PRODUTO / PLANO</label>
+                        <select id="produto" onchange="verificarProduto()" disabled>
+                            <option value="">AGUARDANDO TABELA...</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>MENSALIDADE ASSOCIATIVA (R$)</label>
-                        <input type="text" id="valorEmpresaDisplay" value="R$ 0,00" readonly style="background-color: #e9ecef; font-weight:bold; color:var(--primary)">
-                        <input type="hidden" id="valorEmpresaAssoc" value="0">
+                        <label>ACOMODAÇÃO</label>
+                        <select id="acomodacao" disabled>
+                            <option value="">SELECIONE...</option>
+                        </select>
                     </div>
                 </div>
+
+                <!-- ÁREA MANUAL (Opção "Outro") -->
+                <div id="area-manual">
+                    <h4 style="color: var(--primary);">✏️ PREENCHIMENTO MANUAL</h4>
+                    
+                    <div class="form-group" style="margin-bottom:20px;">
+                        <label style="color:var(--danger)">NOME DO PLANO (OBRIGATÓRIO)</label>
+                        <input type="text" id="manualNomePlano" placeholder="DIGITE O NOME DO PLANO...">
+                    </div>
+
+                    <div class="grid-3">
+                        <div class="form-group">
+                            <label>VALOR DA MENSALIDADE (R$)</label>
+                            <input type="number" id="manualMensalidade" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>TAXA DE ADESÃO (R$)</label>
+                            <input type="number" id="manualTaxa" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label style="color: var(--primary);">TAXA ASSOCIATIVA (R$)</label>
+                            <input type="number" id="manualTaxaAssociativa" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ÁREA ASSOCIATIVA (ACIRP / ACIF) -->
+                <div id="area-associativa">
+                    <h4 style="color: var(--primary);">🏢 CONFIGURAÇÃO ASSOCIATIVA (<span id="label-tipo-assoc">EMPRESA</span>)</h4>
+                    <div class="grid-layout">
+                        <div class="form-group">
+                            <label>TIPO DE EMPRESA / ASSOCIAÇÃO</label>
+                            <select id="tipoEmpresaAssoc" onchange="atualizarValorEmpresa()">
+                                <option value="0">SELECIONE A EMPRESA...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>MENSALIDADE ASSOCIATIVA (R$)</label>
+                            <input type="text" id="valorEmpresaDisplay" value="R$ 0,00" readonly style="background-color: #e9ecef; font-weight:bold; color:var(--primary)">
+                            <input type="hidden" id="valorEmpresaAssoc" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-add" onclick="adicionarCliente()">+ ADICIONAR À LISTA</button>
             </div>
 
-            <button class="btn btn-add" onclick="adicionarCliente()">+ ADICIONAR À LISTA</button>
-        </div>
+            <!-- Carrinho (Preview) -->
+            <div style="background: var(--accent-bg); padding: 25px; border-radius: 8px; border: 1px solid #dceef7;">
+                <h3 style="margin-top:0; color:var(--primary)">RESUMO PARCIAL</h3>
+                
+                <table id="tabela-preview" class="hidden">
+                    <thead>
+                        <tr>
+                            <th>NOME</th>
+                            <th>IDADE</th>
+                            <th>PLANO</th>
+                            <th>VALOR</th>
+                            <th style="width:50px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-preview"></tbody>
+                </table>
+                <div id="lista-vazia" style="text-align:center; padding:30px; color:#888; background:white; border-radius:6px; border:1px dashed #ccc;">
+                    NENHUM BENEFICIÁRIO ADICIONADO AINDA.
+                </div>
 
-        <!-- Carrinho (Preview) -->
-        <div style="background: var(--accent-bg); padding: 25px; border-radius: 8px; border: 1px solid #dceef7;">
-            <h3 style="margin-top:0; color:var(--primary)">RESUMO PARCIAL</h3>
-            
-            <table id="tabela-preview" class="hidden">
-                <thead>
-                    <tr>
-                        <th>NOME</th>
-                        <th>IDADE</th>
-                        <th>PLANO</th>
-                        <th>VALOR</th>
-                        <th style="width:50px"></th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-preview"></tbody>
-            </table>
-            <div id="lista-vazia" style="text-align:center; padding:30px; color:#888; background:white; border-radius:6px; border:1px dashed #ccc;">
-                NENHUM BENEFICIÁRIO ADICIONADO AINDA.
+                <div id="resumo-parcial" class="hidden" style="margin-top: 20px; text-align: right;">
+                    <span style="font-size:1.1em; color:#666">TOTAL MENSALIDADES:</span>
+                    <strong style="color: var(--primary); font-size:1.4em; margin-left:10px;" id="total-preview">R$ 0,00</strong>
+                </div>
+
+                <button id="btn-gerar" class="btn btn-finish hidden" onclick="gerarPropostaFinal()">✅ GERAR PROPOSTA PDF</button>
             </div>
-
-            <div id="resumo-parcial" class="hidden" style="margin-top: 20px; text-align: right;">
-                <span style="font-size:1.1em; color:#666">TOTAL MENSALIDADES:</span>
-                <strong style="color: var(--primary); font-size:1.4em; margin-left:10px;" id="total-preview">R$ 0,00</strong>
-            </div>
-
-            <button id="btn-gerar" class="btn btn-finish hidden" onclick="gerarPropostaFinal()">✅ GERAR PROPOSTA PDF</button>
         </div>
     </div>
 
     <!-- Interface da Proposta Final (Impressão) -->
     <div id="proposta-final" class="hidden">
         
-        <!-- Cabeçalho com Logo -->
-        <div class="header-proposta">
-            <div class="logo-container">
-                <img src="Logotipo-Bensade-+-Bene-1.png" alt="Bensaúde" class="logo-img" onerror="this.style.display='none';">
-                <img src="Lancers.png" id="logo-lancers" alt="Lancers" class="logo-img" style="display:none;">
-                <h1 id="logo-text" style="display:none; margin:0; color:var(--primary); font-size:2em;">BENSAÚDE</h1>
-            </div>
-            <div style="text-align: right;">
-                <p style="margin:5px 0; font-size:1.1em;"><strong>PROPOSTA COMERCIAL</strong></p>
-                <p style="margin:5px 0; color:#666;">DATA: <span id="data-hoje"></span></p>
-                <p style="margin:5px 0; color:var(--primary); font-weight:bold;">VALIDADE: <span id="data-validade"></span></p>
-            </div>
-        </div>
-
-        <h2 style="text-align: left; margin-bottom: 20px; color: var(--primary); border-left: 5px solid var(--secondary); padding-left: 15px;">
-            DETALHAMENTO DO PLANO
-        </h2>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>BENEFICIÁRIO</th>
-                    <th>IDADE (FAIXA)</th>
-                    <th>PLANO / ACOMODAÇÃO</th>
-                    <th>MENSALIDADE</th>
-                </tr>
-            </thead>
-            <tbody id="tbody-final">
-                <!-- Preenchido via JS -->
-            </tbody>
-        </table>
-
-        <!-- Box de Totais -->
-        <div class="resumo-box">
-            <div class="linha-total">
-                <span>SOMA DAS MENSALIDADES:</span>
-                <span id="soma-mensalidade">R$ 0,00</span>
-            </div>
+        <!--  -->
+        <!-- PÁGINA 1: ORÇAMENTO (Oculto se for só Coparticipação) -->
+        <!--  -->
+        <div id="conteudo-orcamento">
             
-            <!-- Taxa Normal, Administrativa ou Inclusão -->
-            <div id="linha-taxa-normal" class="linha-total">
-                <span id="label-taxa-normal">TAXA DE ADESÃO/ASSOCIATIVA:</span>
-                <span id="soma-taxa-normal">R$ 0,00</span>
-            </div>
-
-            <!-- Taxa ACIRP (20%) -->
-            <div id="linha-taxa-acirp" class="linha-total hidden" style="color: var(--primary);">
-                <div style="display: flex; flex-direction: column;">
-                    <span>TAXA ADMINISTRATIVA ACIRP (20%):</span>
-                    <span style="font-size: 0.7em; font-weight: normal; color: #555; margin-top:2px;">(VALOR PAGO APENAS NA PRIMEIRA MENSALIDADE)</span>
+            <!-- Cabeçalho com Logo -->
+            <div class="header-proposta">
+                <div class="logo-container">
+                    <img src="Logotipo-Bensade-+-Bene-1.png" alt="Bensaúde" class="logo-img" onerror="this.style.display='none';">
+                    <img src="Lancers.png" id="logo-lancers" alt="Lancers" class="logo-img" style="display:none;">
+                    <h1 id="logo-text" style="display:none; margin:0; color:var(--primary); font-size:2em;">BENSAÚDE</h1>
                 </div>
-                <span id="soma-taxa-acirp" style="align-self: flex-start;">R$ 0,00</span>
-            </div>
-
-            <!-- Mensalidade Associativa (ACIRP e ACIF) -->
-            <div id="linha-empresa-assoc" class="linha-total hidden" style="color: var(--primary);">
-                <span>MENSALIDADE ASSOCIATIVA (<span id="nome-empresa-final">EMPRESA</span>):</span>
-                <span id="soma-empresa-assoc">R$ 0,00</span>
-            </div>
-
-            <!-- TOTAL MENSAL (Recorrente) -->
-            <div class="linha-total destaque">
-                <span>VALOR TOTAL MENSAL:</span>
-                <span id="soma-total-final">R$ 0,00</span>
-            </div>
-
-            <!-- Taxa LANCERS (Ato) - Separada -->
-            <div id="linha-taxa-lancers" class="linha-total linha-ato hidden">
-                <div style="display:flex; justify-content:space-between; width:100%">
-                    <span id="label-taxa-lancers">TAXA DE ADESÃO (VALOR PAGO NO ATO DA CONTRATAÇÃO):</span>
-                    <span id="soma-taxa-lancers">R$ 0,00</span>
+                <div style="text-align: right;">
+                    <p style="margin:5px 0; font-size:1.1em;"><strong>PROPOSTA COMERCIAL</strong></p>
+                    <p style="margin:5px 0; color:#666;">DATA: <span id="data-hoje"></span></p>
+                    <p style="margin:5px 0; color:var(--primary); font-weight:bold;">VALIDADE: <span id="data-validade"></span></p>
                 </div>
             </div>
-        </div>
 
-        <!-- ÁREA DA IMAGEM DE CARÊNCIA -->
-        <div class="carencia-img-container" id="container-carencia">
-            <h3 style="margin: 0 0 10px 0; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 5px;">
-                TABELA DE CARÊNCIAS
-            </h3>
-            <!-- O onerror previne que apareça um ícone quebrado caso a imagem não exista na pasta -->
-            <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img" onerror="this.style.display='none';" onload="this.style.display='block';">
-        </div>
+            <h2 style="text-align: left; margin-bottom: 20px; color: var(--primary); border-left: 5px solid var(--secondary); padding-left: 15px;">
+                DETALHAMENTO DO PLANO
+            </h2>
 
-        <!-- Rodapé -->
-        <div class="footer-proposta">
-            <div style="width: 55%;">
-                <strong style="color:var(--primary)">OBSERVAÇÕES IMPORTANTES:</strong>
-                <ul style="color: #555; padding-left: 20px; margin-top:10px; line-height:1.5;">
-                    <li>PROPOSTA VÁLIDA POR 15 DIAS A PARTIR DA EMISSÃO.</li>
-                    <li>VALORES SUJEITOS A REAJUSTE CONFORME TABELA VIGENTE DA OPERADORA.</li>
-                    <li class="no-print">A CONTRATAÇÃO DEPENDE DO CUMPRIMENTO DOS REQUISITOS CONTRATUAIS.</li>
-                </ul>
+            <table>
+                <thead>
+                    <tr>
+                        <th>BENEFICIÁRIO</th>
+                        <th>IDADE (FAIXA)</th>
+                        <th>PLANO / ACOMODAÇÃO</th>
+                        <th>MENSALIDADE</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-final">
+                    <!-- Preenchido via JS -->
+                </tbody>
+            </table>
+
+            <!-- Box de Totais -->
+            <div class="resumo-box">
+                <div class="linha-total">
+                    <span>SOMA DAS MENSALIDADES:</span>
+                    <span id="soma-mensalidade">R$ 0,00</span>
+                </div>
                 
-                <!-- LINK GUIA MÉDICO + QR CODE -->
-                <div style="margin-top: 25px; padding-left: 20px;">
-                    <strong style="color:var(--primary)">CONSULTE NOSSA REDE CREDENCIADA:</strong><br>
-                    
-                    <div class="qr-code-container">
-                        <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img" onerror="this.style.display='none';">
-                        <br>
-                        <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
-                            🔗 ACESSAR GUIA MÉDICO
-                        </a>
+                <!-- Taxa Normal, Administrativa ou Inclusão -->
+                <div id="linha-taxa-normal" class="linha-total">
+                    <span id="label-taxa-normal">TAXA DE ADESÃO/ASSOCIATIVA:</span>
+                    <span id="soma-taxa-normal">R$ 0,00</span>
+                </div>
+
+                <!-- Taxa ACIRP (20%) -->
+                <div id="linha-taxa-acirp" class="linha-total hidden" style="color: var(--primary);">
+                    <div style="display: flex; flex-direction: column;">
+                        <span>TAXA ADMINISTRATIVA ACIRP (20%):</span>
+                        <span style="font-size: 0.7em; font-weight: normal; color: #555; margin-top:2px;">(VALOR PAGO APENAS NA PRIMEIRA MENSALIDADE)</span>
+                    </div>
+                    <span id="soma-taxa-acirp" style="align-self: flex-start;">R$ 0,00</span>
+                </div>
+
+                <!-- Mensalidade Associativa (ACIRP e ACIF) -->
+                <div id="linha-empresa-assoc" class="linha-total hidden" style="color: var(--primary);">
+                    <span>MENSALIDADE ASSOCIATIVA (<span id="nome-empresa-final">EMPRESA</span>):</span>
+                    <span id="soma-empresa-assoc">R$ 0,00</span>
+                </div>
+
+                <!-- TOTAL MENSAL (Recorrente) -->
+                <div class="linha-total destaque">
+                    <span>VALOR TOTAL MENSAL:</span>
+                    <span id="soma-total-final">R$ 0,00</span>
+                </div>
+
+                <!-- Taxa LANCERS (Ato) - Separada -->
+                <div id="linha-taxa-lancers" class="linha-total linha-ato hidden">
+                    <div style="display:flex; justify-content:space-between; width:100%">
+                        <span id="label-taxa-lancers">TAXA DE ADESÃO (VALOR PAGO NO ATO DA CONTRATAÇÃO):</span>
+                        <span id="soma-taxa-lancers">R$ 0,00</span>
                     </div>
                 </div>
             </div>
-            
-            <div class="assinatura-box">
-                <div class="linha-assinatura"></div>
-                <div id="assinatura-nome" style="font-weight:bold; color:var(--primary); font-size:1.1em;">CONSULTOR</div>
-                <div style="font-size:0.9em; color:#666">REPRESENTANTE COMERCIAL</div>
+
+            <!-- ÁREA DA IMAGEM DE CARÊNCIA -->
+            <div class="carencia-img-container" id="container-carencia">
+                <h3 style="margin: 0 0 10px 0; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 5px;">
+                    TABELA DE CARÊNCIAS
+                </h3>
+                <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img" onerror="this.style.display='none';" onload="this.style.display='block';">
             </div>
+
+            <!-- Rodapé -->
+            <div class="footer-proposta">
+                <div style="width: 55%;">
+                    <strong style="color:var(--primary)">OBSERVAÇÕES IMPORTANTES:</strong>
+                    <ul style="color: #555; padding-left: 20px; margin-top:10px; line-height:1.5;">
+                        <li>PROPOSTA VÁLIDA POR 15 DIAS A PARTIR DA EMISSÃO.</li>
+                        <li>VALORES SUJEITOS A REAJUSTE CONFORME TABELA VIGENTE DA OPERADORA.</li>
+                        <li class="no-print">A CONTRATAÇÃO DEPENDE DO CUMPRIMENTO DOS REQUISITOS CONTRATUAIS.</li>
+                    </ul>
+                    
+                    <!-- LINK GUIA MÉDICO + QR CODE -->
+                    <div style="margin-top: 25px; padding-left: 20px;">
+                        <strong style="color:var(--primary)">CONSULTE NOSSA REDE CREDENCIADA:</strong><br>
+                        
+                        <div class="qr-code-container">
+                            <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img" onerror="this.style.display='none';">
+                            <br>
+                            <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
+                                🔗 ACESSAR GUIA MÉDICO
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="assinatura-box">
+                    <div class="linha-assinatura"></div>
+                    <div id="assinatura-nome" style="font-weight:bold; color:var(--primary); font-size:1.1em;">CONSULTOR</div>
+                    <div style="font-size:0.9em; color:#666">REPRESENTANTE COMERCIAL</div>
+                </div>
+            </div>
+
+        </div> <!-- FIM DO CONTEUDO ORCAMENTO -->
+
+
+        <!--  -->
+        <!-- PÁGINA 2: MODELO DE COPARTICIPAÇÃO -->
+        <!--  -->
+        <div id="conteudo-coparticipacao" style="display: none;">
+            <img src="Exemplos_Coparticipacoes.png" alt="Exemplos de Coparticipação" onerror="this.style.display='none';" onload="this.style.display='inline-block';">
         </div>
 
+
+        <!-- BOTÕES DE AÇÃO GERAIS -->
         <div class="no-print" style="text-align:center; margin-top:40px; display:flex; justify-content:center; gap:20px;">
             <button class="btn btn-back" style="width:auto; padding: 15px 30px;" onclick="voltarEdicao()">
                 ✏️ VOLTAR E EDITAR
@@ -575,6 +633,7 @@
                 🖨️ SALVAR PDF / IMPRIMIR
             </button>
         </div>
+
     </div>
 
 </div>
@@ -598,15 +657,68 @@
         const consultor = localStorage.getItem('nomeConsultor');
         if (consultor) document.getElementById('nomeConsultor').value = consultor;
 
-        // Tenta carregar a tabela automaticamente
-        carregarTabelaAutomatica();
+        // VERIFICA SE A TABELA JÁ ESTÁ NA MEMÓRIA DO NAVEGADOR
+        const salvo = localStorage.getItem('tabelaPrecos');
+        if (salvo && salvo !== "[]") {
+            dadosExcel = JSON.parse(salvo);
+            
+            const salvoAcirp = localStorage.getItem('tabelaAcirp');
+            if(salvoAcirp) dadosAcirp = JSON.parse(salvoAcirp);
+            
+            const salvoAcif = localStorage.getItem('tabelaAcif');
+            if(salvoAcif) dadosAcif = JSON.parse(salvoAcif);
+            
+            popularSelects();
+            
+            const statusDiv = document.getElementById('status-tabela');
+            statusDiv.className = 'status-success';
+            statusDiv.innerText = '✅ TABELA CARREGADA DA MEMÓRIA!';
+            
+            // Mostra o botão de upload apenas como opção de atualização
+            const fallbackDiv = document.getElementById('fallback-upload');
+            fallbackDiv.style.display = 'block';
+            fallbackDiv.querySelector('label').innerText = '📁 ATUALIZAR TABELA (OPCIONAL):';
+        } else {
+            // Se não tem na memória, tenta buscar o arquivo automaticamente
+            carregarTabelaAutomatica();
+        }
     };
 
-    // --- CARREGAMENTO AUTOMÁTICO DA TABELA ---
+    // --- LÓGICA DO TIPO DE ORÇAMENTO (EXIBIÇÃO NA TELA INICIAL) ---
+    function verificarTipoOrcamento() {
+        const tipo = document.getElementById('tipoOrcamentoSelecionado').value;
+        const areaForm = document.getElementById('area-adicionar-beneficiario');
+        const btnDireto = document.getElementById('btn-imprimir-copart');
+
+        if (tipo === 'coparticipacao') {
+            areaForm.style.display = 'none';
+            btnDireto.style.display = 'block';
+        } else {
+            areaForm.style.display = 'block';
+            btnDireto.style.display = 'none';
+        }
+    }
+
+    // --- IMPRESSÃO DIRETA DA COPARTICIPAÇÃO ---
+    function imprimirCoparticipacaoDireto() {
+        document.getElementById('interface-vendedor').classList.add('hidden');
+        document.getElementById('proposta-final').classList.remove('hidden');
+        
+        // Oculta o orçamento e mostra só a coparticipação
+        document.getElementById('conteudo-orcamento').style.display = 'none';
+        
+        const divCopart = document.getElementById('conteudo-coparticipacao');
+        divCopart.style.display = 'block';
+        divCopart.style.pageBreakBefore = 'auto'; // Sem quebra, pois é a única página
+        
+        window.scrollTo(0, 0);
+    }
+
+    // --- CARREGAMENTO AUTOMÁTICO DA TABELA (VIA FETCH) ---
     function carregarTabelaAutomatica() {
         const statusDiv = document.getElementById('status-tabela');
         const fallbackDiv = document.getElementById('fallback-upload');
-        const arquivoUrl = 'tabela_precos.xlsx'; // NOME DO ARQUIVO NO GITHUB/PASTA
+        const arquivoUrl = 'tabela_precos.xlsx';
 
         fetch(arquivoUrl)
             .then(response => {
@@ -619,13 +731,16 @@
                 
                 statusDiv.className = 'status-success';
                 statusDiv.innerText = '✅ TABELA CARREGADA AUTOMATICAMENTE!';
-                fallbackDiv.style.display = 'none'; // Esconde o upload manual se deu certo
+                
+                // Mostra o botão de upload apenas como opção de atualização
+                fallbackDiv.style.display = 'block';
+                fallbackDiv.querySelector('label').innerText = '📁 ATUALIZAR TABELA (OPCIONAL):';
             })
             .catch(error => {
                 console.error(error);
                 statusDiv.className = 'status-error';
-                statusDiv.innerHTML = '❌ TABELA NÃO ENCONTRADA AUTOMATICAMENTE.<br><small>Se estiver testando no PC, use o botão abaixo.</small>';
-                fallbackDiv.style.display = 'block'; // Mostra o upload manual
+                statusDiv.innerHTML = '❌ BLOQUEIO DE SEGURANÇA LOCAL.<br><small>Por favor, selecione o arquivo abaixo.</small>';
+                fallbackDiv.style.display = 'block'; 
             });
     }
 
@@ -640,19 +755,25 @@
             const workbook = XLSX.read(data, {type: 'array'});
             processarWorkbook(workbook);
             
+            // SALVA NA MEMÓRIA DO NAVEGADOR PARA AS PRÓXIMAS VEZES
+            localStorage.setItem('tabelaPrecos', JSON.stringify(dadosExcel));
+            localStorage.setItem('tabelaAcirp', JSON.stringify(dadosAcirp));
+            localStorage.setItem('tabelaAcif', JSON.stringify(dadosAcif));
+            
             const statusDiv = document.getElementById('status-tabela');
             statusDiv.className = 'status-success';
-            statusDiv.innerText = '✅ TABELA CARREGADA MANUALMENTE!';
+            statusDiv.innerText = '✅ TABELA SALVA E CARREGADA COM SUCESSO!';
+            
+            const fallbackDiv = document.getElementById('fallback-upload');
+            fallbackDiv.querySelector('label').innerText = '📁 ATUALIZAR TABELA (OPCIONAL):';
         };
         reader.readAsArrayBuffer(file);
     });
 
     function processarWorkbook(workbook) {
-        // 1. Planilha de Preços
         const sheetName = workbook.SheetNames[0];
         dadosExcel = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // 2. Planilha ACIRP
         const acirpSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIRP'));
         if (acirpSheetName) {
             dadosAcirp = XLSX.utils.sheet_to_json(workbook.Sheets[acirpSheetName]);
@@ -660,7 +781,6 @@
             dadosAcirp = [];
         }
 
-        // 3. Planilha ACIF FERNANDOPOLIS
         const acifSheetName = workbook.SheetNames.find(n => n.toUpperCase().includes('ACIF_FERNANDOPOLIS'));
         if (acifSheetName) {
             dadosAcif = XLSX.utils.sheet_to_json(workbook.Sheets[acifSheetName]);
@@ -719,20 +839,16 @@
         const labelTipo = document.getElementById('label-tipo-assoc');
         const selectAcom = document.getElementById('acomodacao');
         
-        // Reset
         document.getElementById('tipoEmpresaAssoc').innerHTML = '<option value="0">SELECIONE...</option>';
         document.getElementById('valorEmpresaAssoc').value = 0;
         document.getElementById('valorEmpresaDisplay').value = "R$ 0,00";
         
         areaAssoc.style.display = 'none';
         areaManual.style.display = 'none';
-        
-        // Habilita Acomodação por padrão
         selectAcom.disabled = false; 
 
         if (produto === "OUTRO") {
             areaManual.style.display = 'block';
-            // Acomodação continua habilitada
         } else if (produto.includes("ACIRP")) {
             areaAssoc.style.display = 'block';
             labelTipo.innerText = "ACIRP";
@@ -809,12 +925,10 @@
             idade = parseInt(idadeManual);
         }
 
-        // --- Lógica para "OUTRO" (Manual) ---
         if (produto === "OUTRO") {
             const nomePlanoManual = document.getElementById('manualNomePlano').value;
             const mensManual = parseFloat(document.getElementById('manualMensalidade').value) || 0;
             const taxaManual = parseFloat(document.getElementById('manualTaxa').value) || 0;
-            // Captura Taxa Associativa Manual
             const taxaAssocManual = parseFloat(document.getElementById('manualTaxaAssociativa').value) || 0;
             const acomodacaoManual = document.getElementById('acomodacao').value;
             
@@ -857,7 +971,6 @@
             return;
         }
 
-        // --- Lógica Normal (Excel) ---
         const acomodacao = document.getElementById('acomodacao').value;
         const linha = dadosExcel.find(row => {
             return row['tipo_de_plano'] == produto &&
@@ -880,7 +993,7 @@
             if (ehAssociativo) {
                 taxaIndividual = 0; 
             } else if (ehIndividual) {
-                taxaIndividual = 25.00; // REGRA: Taxa Fixa de R$ 25,00 para Individual
+                taxaIndividual = 25.00; 
             }
             
             listaClientes.push({
@@ -970,6 +1083,8 @@
             document.getElementById('area-manual').style.display = 'none';
             document.getElementById('tipoEmpresaAssoc').value = "0";
             document.getElementById('tipoCarenciaSelecionada').value = "normal";
+            document.getElementById('tipoOrcamentoSelecionado').value = "simplificado";
+            verificarTipoOrcamento();
             atualizarValorEmpresa();
         }
     }
@@ -977,6 +1092,7 @@
     // --- Navegação ---
     function gerarPropostaFinal() {
         const consultor = document.getElementById('nomeConsultor').value;
+        const tipoOrcamento = document.getElementById('tipoOrcamentoSelecionado').value;
         
         if(!consultor || consultor.trim() === "") {
             alert("POR FAVOR, PREENCHA O NOME DO CONSULTOR (OBRIGATÓRIO).");
@@ -990,7 +1106,6 @@
         const tipoCarencia = document.getElementById('tipoCarenciaSelecionada').value;
         const imgCarencia = document.getElementById('img-carencia-final');
         
-        // Define qual imagem carregar baseado na seleção
         if (tipoCarencia === 'normal') {
             imgCarencia.src = 'carencias_normais.png';
         } else if (tipoCarencia === 'reduzida') {
@@ -1008,6 +1123,19 @@
             }
         }
 
+        // --- LÓGICA DO TIPO DE ORÇAMENTO ---
+        const divOrcamento = document.getElementById('conteudo-orcamento');
+        const divCoparticipacao = document.getElementById('conteudo-coparticipacao');
+
+        if (tipoOrcamento === 'simplificado') {
+            divOrcamento.style.display = 'block';
+            divCoparticipacao.style.display = 'none';
+        } else if (tipoOrcamento === 'completo') {
+            divOrcamento.style.display = 'block';
+            divCoparticipacao.style.display = 'block';
+            divCoparticipacao.style.pageBreakBefore = 'always'; // Quebra de página
+        }
+
         document.getElementById('interface-vendedor').classList.add('hidden');
         document.getElementById('proposta-final').classList.remove('hidden');
         window.scrollTo(0, 0);
@@ -1022,14 +1150,12 @@
         let temIndividual = false;
         let temManual = false;
         
-        // Identifica se existe PCE ou PCA na lista
         let isPCE = false;
         let isPCA = false;
 
         listaClientes.forEach(c => {
             somaMensalidade += c.mensalidade;
             
-            // Se for manual, soma a taxa associativa manual
             if (c.ehManual) {
                 somaTaxaTabela += c.taxaAssociativaManual;
                 temManual = true;
@@ -1059,11 +1185,10 @@
         document.getElementById('soma-mensalidade').innerText = formatarMoeda(somaMensalidade);
 
         // --- LÓGICA DE AUMENTO DE FONTE PARA LANCERS ---
-        const containerProposta = document.getElementById('proposta-final');
         if (temLancers) {
-            containerProposta.classList.add('proposta-ampliada');
+            divOrcamento.classList.add('proposta-ampliada');
         } else {
-            containerProposta.classList.remove('proposta-ampliada');
+            divOrcamento.classList.remove('proposta-ampliada');
         }
 
         // CONTROLE DA LOGO LANCERS
@@ -1076,14 +1201,12 @@
 
         let totalMensalRecorrente = 0;
 
-        // Esconde tudo primeiro
         document.getElementById('linha-taxa-normal').classList.add('hidden');
         document.getElementById('linha-taxa-acirp').classList.add('hidden');
         document.getElementById('linha-taxa-lancers').classList.add('hidden');
         document.getElementById('linha-empresa-assoc').classList.add('hidden');
 
         if (temAssociativo) {
-            // Se for Associativo (ACIRP ou ACIF)
             const valorEmpresa = parseFloat(document.getElementById('valorEmpresaAssoc').value) || 0;
             const selectEmp = document.getElementById('tipoEmpresaAssoc');
             const nomeEmpresa = selectEmp.options[selectEmp.selectedIndex].text;
@@ -1102,28 +1225,21 @@
             totalMensalRecorrente = somaMensalidade + taxaAcirp + valorEmpresa;
 
         } else if (temLancers) {
-            // Se for LANCERS
-            
-            // REGRA: Taxa Administrativa (R$ 7,40) APENAS para PCA
             if (isPCA) {
                 somaTaxaTabela = 7.40;
                 document.getElementById('linha-taxa-normal').classList.remove('hidden');
                 document.getElementById('label-taxa-normal').innerText = "TAXA ADMINISTRATIVA:";
                 document.getElementById('soma-taxa-normal').innerText = formatarMoeda(somaTaxaTabela);
             } else {
-                // Se for PCE ou outro Lancers que não seja PCA, não cobra essa taxa
                 somaTaxaTabela = 0;
                 document.getElementById('linha-taxa-normal').classList.add('hidden');
             }
 
             let taxaLancers = 0;
             
-            // REGRA: Taxa de Adesão (Ato)
             if (isPCE) {
-                // PCE: 50% da soma das mensalidades
                 taxaLancers = somaMensalidade * 0.50; 
             } else {
-                // PCA (ou outros Lancers): 99% da soma das mensalidades
                 taxaLancers = somaMensalidade * 0.99; 
             }
 
@@ -1134,12 +1250,10 @@
             totalMensalRecorrente = somaMensalidade + somaTaxaTabela;
 
         } else if (temManual) {
-            // SE FOR MANUAL (OUTRO)
             document.getElementById('linha-taxa-normal').classList.remove('hidden');
             document.getElementById('label-taxa-normal').innerText = "TAXA ASSOCIATIVA / ADESÃO:";
             document.getElementById('soma-taxa-normal').innerText = formatarMoeda(somaTaxaTabela);
             
-            // Taxa de Adesão Manual (Ato)
             let taxaAdesaoManualTotal = 0;
             listaClientes.forEach(c => { if(c.ehManual) taxaAdesaoManualTotal += c.taxaAdesaoManual; });
             
@@ -1152,10 +1266,8 @@
             totalMensalRecorrente = somaMensalidade + somaTaxaTabela;
 
         } else {
-            // Plano Normal (Individual ou Familiar Tabela)
             document.getElementById('linha-taxa-normal').classList.remove('hidden');
             
-            // Troca o rótulo se for Individual
             if (temIndividual) {
                 document.getElementById('label-taxa-normal').innerText = "TAXA DE INCLUSÃO:";
             } else {
@@ -1173,23 +1285,25 @@
     }
 
     function ajustarEscalaParaImpressao() {
-        const container = document.getElementById('proposta-final');
-        const alturaConteudo = container.scrollHeight;
-        // Altura segura aproximada de uma página A4 em pixels
-        const alturaMaximaPagina = 1050; 
+        const containerOrcamento = document.getElementById('conteudo-orcamento');
+        
+        containerOrcamento.style.zoom = 1;
+
+        if (containerOrcamento.style.display === 'none') return;
+
+        const alturaConteudo = containerOrcamento.scrollHeight;
+        const alturaMaximaPagina = 980; 
 
         if (alturaConteudo > alturaMaximaPagina) {
             const escala = alturaMaximaPagina / alturaConteudo;
-            container.style.zoom = escala;
-        } else {
-            container.style.zoom = 1;
+            containerOrcamento.style.zoom = escala;
         }
     }
 
     function voltarEdicao() {
         document.getElementById('proposta-final').classList.add('hidden');
         document.getElementById('interface-vendedor').classList.remove('hidden');
-        document.getElementById('proposta-final').style.zoom = 1;
+        document.getElementById('conteudo-orcamento').style.zoom = 1;
         window.scrollTo(0, 0);
     }
 </script>

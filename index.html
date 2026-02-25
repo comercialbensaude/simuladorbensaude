@@ -93,11 +93,11 @@
             font-weight: bold;
             padding: 10px;
             border-radius: 6px;
-            margin-bottom: 0; /* Ajuste para o grid */
+            margin-bottom: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 45px; /* Altura fixa para alinhar com inputs */
+            height: 45px;
         }
         .status-loading { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -173,7 +173,7 @@
         .carencia-img {
             width: 100%;
             height: auto;
-            max-height: 400px; /* Limite para não estourar a página */
+            max-height: 400px;
             object-fit: contain;
         }
 
@@ -253,6 +253,11 @@
         .hidden { display: none; }
         .no-print { }
 
+        /* --- CLASSE PARA AUMENTAR A FONTE NO PRODUTO LANCERS --- */
+        .proposta-ampliada {
+            font-size: 1.15em;
+        }
+
         /* --- ESTILOS DE IMPRESSÃO OTIMIZADOS --- */
         @media print {
             @page { margin: 5mm; size: A4; }
@@ -260,6 +265,10 @@
             .no-print { display: none !important; }
             .container { box-shadow: none; border: none; padding: 0; max-width: 100%; margin: 0; border-top: none; width: 100%; }
             #proposta-final { display: block !important; width: 100%; }
+            
+            /* Aumento da fonte base na impressão para Lancers */
+            .proposta-ampliada { font-size: 1.35em; }
+
             .header-proposta { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--secondary); }
             .logo-img { max-height: 50px; }
             h2 { font-size: 1.1em; margin: 5px 0; padding-left: 10px; }
@@ -273,9 +282,8 @@
             .footer-proposta { margin-top: 15px; padding-top: 10px; font-size: 0.75em; }
             .qr-code-img { width: 70px; height: 70px; }
             
-            /* Ajuste da imagem de carência na impressão */
             .carencia-img-container { margin-top: 10px; padding: 5px; border: none; }
-            .carencia-img { max-height: 250px; } /* Reduz imagem para caber na folha */
+            .carencia-img { max-height: 250px; } 
             
             a { text-decoration: none; color: #000; }
         }
@@ -302,7 +310,7 @@
                 <label style="color: var(--danger); font-size:0.9em">👨‍💼 NOME DO CONSULTOR</label>
                 <input type="text" id="nomeConsultor" placeholder="SEU NOME...">
             </div>
-            <!-- NOVO CAMPO: SELEÇÃO DE CARÊNCIA -->
+            <!-- SELEÇÃO DE CARÊNCIA -->
             <div>
                 <label style="color: var(--primary); font-size:0.9em">⏳ TIPO DE CARÊNCIA</label>
                 <select id="tipoCarenciaSelecionada">
@@ -738,7 +746,7 @@
         const nasc = new Date(dataNasc);
         let idade = hoje.getFullYear() - nasc.getFullYear();
         const m = hoje.getMonth() - nasc.getMonth();
-        if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
+        if (m &lt; 0 || (m === 0 && hoje.getDate() &lt; nasc.getDate())) idade--;
         return idade;
     }
 
@@ -748,7 +756,7 @@
         if (!numeros) return false;
         const min = parseInt(numeros[0]);
         const max = numeros[1] ? parseInt(numeros[1]) : 999;
-        return idade >= min && idade <= max;
+        return idade >= min && idade &lt;= max;
     }
 
     function formatarMoeda(valor) {
@@ -1021,6 +1029,14 @@
         });
 
         document.getElementById('soma-mensalidade').innerText = formatarMoeda(somaMensalidade);
+
+        // --- LÓGICA DE AUMENTO DE FONTE PARA LANCERS ---
+        const containerProposta = document.getElementById('proposta-final');
+        if (temLancers) {
+            containerProposta.classList.add('proposta-ampliada');
+        } else {
+            containerProposta.classList.remove('proposta-ampliada');
+        }
 
         // CONTROLE DA LOGO LANCERS
         const imgLancers = document.getElementById('logo-lancers');

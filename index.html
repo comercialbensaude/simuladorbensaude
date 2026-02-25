@@ -93,11 +93,12 @@
             font-weight: bold;
             padding: 10px;
             border-radius: 6px;
-            margin-bottom: 0;
+            margin-bottom: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 45px;
+            text-align: center;
         }
         .status-loading { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         .status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -173,7 +174,7 @@
         .carencia-img {
             width: 100%;
             height: auto;
-            max-height: 400px;
+            max-height: 400px; /* Limite para não estourar a página */
             object-fit: contain;
         }
 
@@ -296,14 +297,19 @@
     <!-- TAG DE VERSÃO -->
     <div class="version-tag no-print">VERSÃO 03</div>
     
-    <!-- Configuração (Automática) -->
+    <!-- Configuração -->
     <div class="section no-print" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc;">
         <div class="grid-top">
             <div>
                 <label style="color: var(--primary); font-size:0.9em">STATUS DA TABELA</label>
                 <!-- STATUS DO CARREGAMENTO DA TABELA -->
                 <div id="status-tabela" class="status-loading">
-                    ⌛ CARREGANDO...
+                    ⌛ TENTANDO CARREGAR...
+                </div>
+                <!-- FALLBACK: UPLOAD MANUAL CASO ESTEJA TESTANDO NO PC -->
+                <div id="fallback-upload" style="display: none; margin-top: 10px;">
+                    <label style="color: var(--danger); font-size:0.8em">📁 SELECIONE O ARQUIVO MANUALMENTE:</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" style="padding: 5px; font-size: 0.8em;">
                 </div>
             </div>
             <div>
@@ -599,6 +605,7 @@
     // --- CARREGAMENTO AUTOMÁTICO DA TABELA ---
     function carregarTabelaAutomatica() {
         const statusDiv = document.getElementById('status-tabela');
+        const fallbackDiv = document.getElementById('fallback-upload');
         const arquivoUrl = 'tabela_precos.xlsx'; // NOME DO ARQUIVO NO GITHUB/PASTA
 
         fetch(arquivoUrl)
@@ -611,14 +618,34 @@
                 processarWorkbook(workbook);
                 
                 statusDiv.className = 'status-success';
-                statusDiv.innerText = '✅ TABELA CARREGADA!';
+                statusDiv.innerText = '✅ TABELA CARREGADA AUTOMATICAMENTE!';
+                fallbackDiv.style.display = 'none'; // Esconde o upload manual se deu certo
             })
             .catch(error => {
                 console.error(error);
                 statusDiv.className = 'status-error';
-                statusDiv.innerText = '❌ ERRO: TABELA NÃO ENCONTRADA';
+                statusDiv.innerHTML = '❌ ERRO: TABELA NÃO ENCONTRADA AUTOMATICAMENTE.<br><small>Se estiver testando no PC, use o botão abaixo.</small>';
+                fallbackDiv.style.display = 'block'; // Mostra o upload manual
             });
     }
+
+    // --- CARREGAMENTO MANUAL (FALLBACK) ---
+    document.getElementById('excelFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            processarWorkbook(workbook);
+            
+            const statusDiv = document.getElementById('status-tabela');
+            statusDiv.className = 'status-success';
+            statusDiv.innerText = '✅ TABELA CARREGADA MANUALMENTE!';
+        };
+        reader.readAsArrayBuffer(file);
+    });
 
     function processarWorkbook(workbook) {
         // 1. Planilha de Preços

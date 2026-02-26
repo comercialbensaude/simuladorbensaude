@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORÇAMENTO BENSAÚDE & LANCERS - V5</title>
+    <title>ORÇAMENTO BENSAÚDE & LANCERS - V7</title>
     <!-- Biblioteca para ler Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -95,7 +95,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 45px;
             text-align: center;
         }
         .status-loading { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
@@ -317,7 +316,7 @@
 <div class="container" id="main-container">
     
     <!-- TAG DE VERSÃO -->
-    <div class="version-tag no-print">VERSÃO 05</div>
+    <div class="version-tag no-print">VERSÃO 07</div>
     
     <!-- Configuração Principal -->
     <div class="section no-print" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc;">
@@ -579,7 +578,8 @@
                 <h3 style="margin: 0 0 10px 0; color: var(--primary); border-bottom: 1px solid #ccc; padding-bottom: 5px;">
                     TABELA DE CARÊNCIAS
                 </h3>
-                <img id="img-carencia-final" src="" alt="Tabela de Carências" class="carencia-img" onerror="this.style.display='none';" onload="this.style.display='block';">
+                <!-- Removido o onerror que ocultava a imagem para facilitar a identificação de erro no nome do arquivo -->
+                <img id="img-carencia-final" src="" alt="[IMAGEM DE CARÊNCIA AQUI]" class="carencia-img">
             </div>
 
             <!-- Rodapé -->
@@ -597,7 +597,7 @@
                         <strong style="color:var(--primary)">CONSULTE NOSSA REDE CREDENCIADA:</strong><br>
                         
                         <div class="qr-code-container">
-                            <img src="qrcode.png" alt="QR Code Guia Médico" class="qr-code-img" onerror="this.style.display='none';">
+                            <img src="qrcode.png" alt="[QR CODE AQUI]" class="qr-code-img">
                             <br>
                             <a href="https://bensaude.com.br/guia-medico" target="_blank" class="guia-medico-link">
                                 🔗 ACESSAR GUIA MÉDICO
@@ -620,7 +620,8 @@
         <!-- PÁGINA 2: MODELO DE COPARTICIPAÇÃO -->
         <!--  -->
         <div id="conteudo-coparticipacao" style="display: none;">
-            <img src="Exemplos_Coparticipacoes.png" alt="Exemplos de Coparticipação" onerror="this.style.display='none';" onload="this.style.display='inline-block';">
+            <!-- Removido o onerror que ocultava a imagem para facilitar a identificação de erro no nome do arquivo -->
+            <img id="img-coparticipacao" src="Exemplos_Coparticipacoes.png" alt="[IMAGEM DE COPARTICIPAÇÃO AQUI]">
         </div>
 
 
@@ -674,12 +675,10 @@
             statusDiv.className = 'status-success';
             statusDiv.innerText = '✅ TABELA CARREGADA DA MEMÓRIA!';
             
-            // Mostra o botão de upload apenas como opção de atualização
             const fallbackDiv = document.getElementById('fallback-upload');
             fallbackDiv.style.display = 'block';
             fallbackDiv.querySelector('label').innerText = '📁 ATUALIZAR TABELA (OPCIONAL):';
         } else {
-            // Se não tem na memória, tenta buscar o arquivo automaticamente
             carregarTabelaAutomatica();
         }
     };
@@ -707,6 +706,21 @@
         // Oculta o orçamento e mostra só a coparticipação
         document.getElementById('conteudo-orcamento').style.display = 'none';
         
+        // Verifica se há QUALQUER Lancers na lista para trocar a imagem
+        let temLancersCopart = false;
+        listaClientes.forEach(c => {
+            if (c.ehLancers) {
+                temLancersCopart = true;
+            }
+        });
+
+        const imgCopart = document.getElementById('img-coparticipacao');
+        if (temLancersCopart) {
+            imgCopart.src = 'Exemplos_Copart_Lancers.png';
+        } else {
+            imgCopart.src = 'Exemplos_Coparticipacoes.png';
+        }
+
         const divCopart = document.getElementById('conteudo-coparticipacao');
         divCopart.style.display = 'block';
         divCopart.style.pageBreakBefore = 'auto'; // Sem quebra, pois é a única página
@@ -732,7 +746,6 @@
                 statusDiv.className = 'status-success';
                 statusDiv.innerText = '✅ TABELA CARREGADA AUTOMATICAMENTE!';
                 
-                // Mostra o botão de upload apenas como opção de atualização
                 fallbackDiv.style.display = 'block';
                 fallbackDiv.querySelector('label').innerText = '📁 ATUALIZAR TABELA (OPCIONAL):';
             })
@@ -1164,7 +1177,10 @@
             }
 
             if(c.ehAcirp) temAcirp = true;
+            
+            // Verifica se é QUALQUER plano Lancers
             if(c.ehLancers) temLancers = true;
+            
             if(c.ehIndividual) temIndividual = true;
 
             const p = c.produto.toUpperCase();
@@ -1183,6 +1199,14 @@
         });
 
         document.getElementById('soma-mensalidade').innerText = formatarMoeda(somaMensalidade);
+
+        // --- LÓGICA DA IMAGEM DE COPARTICIPAÇÃO (QUALQUER LANCERS) ---
+        const imgCopart = document.getElementById('img-coparticipacao');
+        if (temLancers) {
+            imgCopart.src = 'Exemplos_Copart_Lancers.png';
+        } else {
+            imgCopart.src = 'Exemplos_Coparticipacoes.png';
+        }
 
         // --- LÓGICA DE AUMENTO DE FONTE PARA LANCERS ---
         if (temLancers) {
